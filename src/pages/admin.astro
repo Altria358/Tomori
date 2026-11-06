@@ -449,6 +449,34 @@ const description = "登录后添加、修改、删除文章和项目";
         await listFiles();
       } catch (e) {
         $("list").innerHTML = '<div class="text-sm text-red-500 py-6 text-center">读取失败：' + e.message + "</div>";
+        return;
+      }
+      await handleDeepLink();
+    }
+
+    async function handleDeepLink() {
+      const params = new URLSearchParams(location.search);
+      const wantTab = params.get("tab");
+      if (wantTab === "projects" || wantTab === "posts") {
+        tab = wantTab;
+        paintTabs();
+        await listFiles();
+      }
+      const editSlug = params.get("edit");
+      if (editSlug) {
+        const want = editSlug.replace(/\.md$/, "") + ".md";
+        const files = await store.list(tab);
+        const file = files.find((f) => f.name === want);
+        if (file) await openEditor(file);
+        else alert("没找到 " + want);
+        return;
+      }
+      const wantNew = params.get("new");
+      if (wantNew === "projects" || wantNew === "posts") {
+        tab = wantNew;
+        paintTabs();
+        await listFiles();
+        await openEditor(null);
       }
     }
 
