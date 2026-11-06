@@ -25,6 +25,9 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 	// 项目
 	links.push(LinkPresets.Projects);
 
+	// 管理（自己发文章用，需要填 GitHub Token）
+	links.push(LinkPresets.Management);
+
 	// 关于
 	links.push(LinkPresets.About);
 
@@ -69,6 +72,11 @@ export const LinkPresets: Record<string, NavBarLink> = {
 		name: "项目",
 		url: "/projects/",
 		icon: "material-symbols:work-rounded",
+	},
+	Management: {
+		name: "管理",
+		url: "/admin/",
+		icon: "material-symbols:edit-square",
 	},
 };
 

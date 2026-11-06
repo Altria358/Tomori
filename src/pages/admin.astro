@@ -1,0 +1,376 @@
+---
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import "@/styles/pages/common.css";
+
+const title = "管理";
+const description = "在这里添加、修改、删除文章和项目";
+---
+
+<MainGridLayout title={title} description={description}>
+  <div class="card-base px-6 py-6 w-full">
+    <div class="page-heading mb-4">
+      <div>
+        <h2>内容管理</h2>
+        <p class="text-sm text-neutral-500 dark:text-neutral-400">
+          在这里直接新增 / 修改 / 删除文章和项目，保存后 1~2 分钟自动发布。
+        </p>
+      </div>
+    </div>
+
+    <!-- 第一步：填 Token -->
+    <div id="setup" class="rounded-xl border border-(--line-divider) p-4">
+      <div class="font-bold mb-2">第一步：填入 GitHub Token（只需一次）</div>
+      <ol class="text-sm text-neutral-600 dark:text-neutral-300 list-decimal pl-5 space-y-1 mb-3">
+        <li>
+          打开
+          <a class="text-(--primary) underline" target="_blank" rel="noopener"
+            href="https://github.com/settings/personal-access-tokens/new"
+            >创建 Fine-grained token</a
+          >
+        </li>
+        <li>Repository access 选 <b>Only select repositories</b> → 勾选 <b>Tomori</b></li>
+        <li>Permissions → Repository permissions → <b>Contents</b> 设为 <b>Read and write</b></li>
+        <li>Generate token，复制 <code>github_pat_...</code> 粘贴到下面</li>
+      </ol>
+      <div class="flex flex-wrap gap-2">
+        <input
+          id="tokenInput"
+          type="password"
+          placeholder="github_pat_..."
+          class="grow min-w-60 px-3 py-2 rounded-xl border border-(--line-divider) bg-transparent text-sm outline-none focus:border-(--primary)"
+        />
+        <button
+          id="saveToken"
+          class="px-4 py-2 rounded-xl bg-(--primary) text-white text-sm font-medium hover:opacity-90"
+        >
+          保存并连接
+        </button>
+      </div>
+      <p id="setupMsg" class="text-sm mt-2 text-neutral-500"></p>
+      <p class="text-xs text-neutral-400 mt-2">
+        Token 只保存在这台电脑的浏览器里（localStorage），不会上传到任何地方。
+      </p>
+    </div>
+
+    <!-- 第二步：管理 -->
+    <div id="panel" class="hidden mt-5">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <button data-tab="posts" class="tab-btn px-4 py-1.5 rounded-full text-sm font-medium">文章</button>
+        <button data-tab="projects" class="tab-btn px-4 py-1.5 rounded-full text-sm font-medium">项目</button>
+        <div class="grow"></div>
+        <button id="newBtn" class="px-4 py-1.5 rounded-full bg-(--primary) text-white text-sm font-medium">
+          + 新建
+        </button>
+        <button id="logoutBtn" class="px-3 py-1.5 rounded-full border border-(--line-divider) text-sm">
+          换 Token
+        </button>
+      </div>
+
+      <div id="list" class="space-y-2"></div>
+
+      <!-- 编辑器 -->
+      <div id="editor" class="hidden mt-5 rounded-xl border border-(--line-divider) p-4">
+        <div id="editorTitle" class="font-bold mb-3">新建</div>
+        <div class="grid sm:grid-cols-2 gap-3 text-sm">
+          <label class="flex flex-col gap-1">
+            <span>文件名（英文/数字/短横线，不带 .md）</span>
+            <input id="fName" class="px-3 py-2 rounded-lg border border-(--line-divider) bg-transparent outline-none focus:border-(--primary)" placeholder="my-new-post" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span>标题</span>
+            <input id="fTitle" class="px-3 py-2 rounded-lg border border-(--line-divider) bg-transparent outline-none focus:border-(--primary)" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span>日期（YYYY-MM-DD）</span>
+            <input id="fDate" type="date" class="px-3 py-2 rounded-lg border border-(--line-divider) bg-transparent outline-none focus:border-(--primary)" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span>标签（逗号分隔）</span>
+            <input id="fTags" class="px-3 py-2 rounded-lg border border-(--line-divider) bg-transparent outline-none focus:border-(--primary)" placeholder="随笔, MyGO" />
+          </label>
+          <label class="flex flex-col gap-1" id="catWrap">
+            <span>分类</span>
+            <input id="fCat" class="px-3 py-2 rounded-lg border border-(--line-divider) bg-transparent outline-none focus:border-(--primary)" placeholder="随笔" />
+          </label>
+          <label class="flex flex-col gap-1 hidden" id="statusWrap">
+            <span>状态</span>
+            <select id="fStatus" class="px-3 py-2 rounded-lg border border-(--line-divider) bg-transparent outline-none focus:border-(--primary)">
+              <option value="planning">计划中</option>
+              <option value="developing">开发中</option>
+              <option value="published">已发布</option>
+              <option value="archived">已归档</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-1 sm:col-span-2">
+            <span>简介（列表页显示）</span>
+            <input id="fDesc" class="px-3 py-2 rounded-lg border border-(--line-divider) bg-transparent outline-none focus:border-(--primary)" />
+          </label>
+          <label class="flex flex-col gap-1 sm:col-span-2 hidden" id="linkWrap">
+            <span>链接（可留空，格式：显示名|https://...）</span>
+            <input id="fLink" class="px-3 py-2 rounded-lg border border-(--line-divider) bg-transparent outline-none focus:border-(--primary)" placeholder="源码|https://github.com/..." />
+          </label>
+          <label class="flex flex-col gap-1 sm:col-span-2">
+            <span>正文（Markdown）</span>
+            <textarea id="fBody" rows="14" class="px-3 py-2 rounded-lg border border-(--line-divider) bg-transparent outline-none focus:border-(--primary) font-mono text-[13px]"></textarea>
+          </label>
+        </div>
+        <div class="flex items-center gap-2 mt-3">
+          <button id="saveBtn" class="px-4 py-2 rounded-xl bg-(--primary) text-white text-sm font-medium">保存</button>
+          <button id="cancelBtn" class="px-4 py-2 rounded-xl border border-(--line-divider) text-sm">取消</button>
+          <span id="editorMsg" class="text-sm text-neutral-500"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    const OWNER = "Altria358";
+    const REPO = "Tomori";
+    const BRANCH = "main";
+    const DIRS = { posts: "src/content/posts", projects: "src/content/projects" };
+    const API = "https://api.github.com/repos/" + OWNER + "/" + REPO;
+
+    const $ = (id) => document.getElementById(id);
+    let token = localStorage.getItem("gh_pat") || "";
+    let tab = "posts";
+    let editing = null; // { name, sha }
+
+    const b64encode = (str) => {
+      const bytes = new TextEncoder().encode(str);
+      let bin = "";
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+      }
+      return btoa(bin);
+    };
+    const b64decode = (b64) => {
+      const bin = atob(b64.replace(/\s/g, ""));
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    };
+
+    async function gh(path, opts = {}) {
+      const res = await fetch(API + path, {
+        ...opts,
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: "Bearer " + token,
+          "X-GitHub-Api-Version": "2022-11-28",
+          ...(opts.headers || {}),
+        },
+      });
+      if (!res.ok) {
+        let msg = res.status + " " + res.statusText;
+        try {
+          const j = await res.json();
+          if (j.message) msg += "：" + j.message;
+        } catch (e) {}
+        throw new Error(msg);
+      }
+      return res.status === 204 ? null : res.json();
+    }
+
+    async function listFiles() {
+      const dir = DIRS[tab];
+      const items = await gh("/contents/" + dir + "?ref=" + BRANCH);
+      const list = $("list");
+      list.innerHTML = "";
+      const files = items.filter((f) => f.name.endsWith(".md"));
+      if (!files.length) {
+        list.innerHTML = '<div class="text-sm text-neutral-500 py-6 text-center">还没有内容，点「+ 新建」</div>';
+        return;
+      }
+      files
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach((f) => {
+          const row = document.createElement("div");
+          row.className =
+            "flex items-center gap-3 rounded-xl border border-(--line-divider) px-3 py-2 text-sm";
+          row.innerHTML =
+            '<span class="grow truncate">' + f.name + "</span>" +
+            '<button class="edit px-3 py-1 rounded-lg border border-(--line-divider)">编辑</button>' +
+            '<button class="del px-3 py-1 rounded-lg border border-red-300 text-red-500">删除</button>';
+          row.querySelector(".edit").onclick = () => openEditor(f);
+          row.querySelector(".del").onclick = () => removeFile(f);
+          list.appendChild(row);
+        });
+    }
+
+    function parseFrontmatter(text) {
+      const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+      if (!m) return { data: {}, body: text };
+      const data = {};
+      m[1].split(/\r?\n/).forEach((line) => {
+        const kv = line.match(/^(\w+):\s*(.*)$/);
+        if (kv) data[kv[1]] = kv[2].trim();
+      });
+      return { data, body: m[2] };
+    }
+
+    async function openEditor(file) {
+      editing = file ? { name: file.name, sha: file.sha } : null;
+      $("editor").classList.remove("hidden");
+      $( "editorTitle").textContent = file ? "编辑：" + file.name : "新建" + (tab === "posts" ? "文章" : "项目");
+      $("editorMsg").textContent = "";
+      $("catWrap").classList.toggle("hidden", tab !== "posts");
+      $("statusWrap").classList.toggle("hidden", tab !== "projects");
+      $("linkWrap").classList.toggle("hidden", tab !== "projects");
+      $("fName").disabled = !!file;
+
+      if (file) {
+        const data = await gh("/contents/" + file.path + "?ref=" + BRANCH);
+        const text = b64decode(data.content);
+        const { data: fm, body } = parseFrontmatter(text);
+        $("fName").value = file.name.replace(/\.md$/, "");
+        $("fTitle").value = (fm.title || "").replace(/^["']|["']$/g, "");
+        $("fDate").value = (fm.published || "").slice(0, 10);
+        $("fDesc").value = (fm.description || "").replace(/^["']|["']$/g, "");
+        $("fTags").value = (fm.tags || "").replace(/[\[\]]/g, "");
+        $("fCat").value = (fm.category || "").replace(/^["']|["']$/g, "");
+        $("fStatus").value = (fm.status || "published").replace(/^["']|["']$/g, "");
+        $("fBody").value = body;
+        $("fLink").value = "";
+      } else {
+        $("fName").value = "";
+        $("fTitle").value = "";
+        $("fDate").value = new Date().toISOString().slice(0, 10);
+        $("fDesc").value = "";
+        $("fTags").value = tab === "posts" ? "随笔" : "项目";
+        $("fCat").value = "随笔";
+        $("fStatus").value = "published";
+        $("fBody").value = "正文写在这里。\n";
+        $("fLink").value = "";
+      }
+      $("editor").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function buildMarkdown() {
+      const yamlEscape = (s) => s.replace(/\r?\n/g, " ").trim();
+      const tags = $("fTags").value
+        .split(/[,，]/)
+        .map((t) => t.trim())
+        .filter(Boolean);
+      const lines = ["---"];
+      lines.push("title: " + yamlEscape($("fTitle").value));
+      lines.push("published: " + ($("fDate").value || new Date().toISOString().slice(0, 10)));
+      if ($("fDesc").value.trim()) lines.push("description: " + yamlEscape($("fDesc").value));
+      lines.push("tags: [" + tags.join(", ") + "]");
+      if (tab === "posts") {
+        if ($("fCat").value.trim()) lines.push("category: " + yamlEscape($("fCat").value));
+      } else {
+        lines.push("status: " + $("fStatus").value);
+        const linkVal = $("fLink").value.trim();
+        if (linkVal) {
+          const idx = linkVal.indexOf("|");
+          const label = idx > -1 ? linkVal.slice(0, idx) : "链接";
+          const url = idx > -1 ? linkVal.slice(idx + 1) : linkVal;
+          lines.push("link:");
+          lines.push("  - label: " + label.trim());
+          lines.push("    value: " + url.trim());
+        }
+      }
+      lines.push("---");
+      lines.push("");
+      return lines.join("\n") + $("fBody").value;
+    }
+
+    async function save() {
+      const name = $("fName").value.trim().replace(/\.md$/, "");
+      if (!name) return alert("请填写文件名");
+      if (!$("fTitle").value.trim()) return alert("请填写标题");
+      if (!/^[a-zA-Z0-9._-]+$/.test(name)) return alert("文件名只能用英文、数字、点、下划线、短横线");
+      const dir = DIRS[tab];
+      const path = dir + "/" + name + ".md";
+      $("editorMsg").textContent = "保存中…";
+      try {
+        const body = {
+          message: (editing ? "更新 " : "新增 ") + (tab === "posts" ? "文章：" : "项目：") + name,
+          content: b64encode(buildMarkdown()),
+          branch: BRANCH,
+        };
+        if (editing && editing.sha) body.sha = editing.sha;
+        await gh("/contents/" + path, { method: "PUT", body: JSON.stringify(body) });
+        $("editorMsg").textContent = "已保存，1~2 分钟后自动发布 ✓";
+        editing = null;
+        $("editor").classList.add("hidden");
+        await listFiles();
+      } catch (e) {
+        $("editorMsg").textContent = "保存失败：" + e.message;
+      }
+    }
+
+    async function removeFile(file) {
+      if (!confirm("确定删除 " + file.name + " ？（会同时删除线上的这一篇）")) return;
+      try {
+        await gh("/contents/" + file.path, {
+          method: "DELETE",
+          body: JSON.stringify({ message: "删除 " + file.name, sha: file.sha, branch: BRANCH }),
+        });
+        await listFiles();
+      } catch (e) {
+        alert("删除失败：" + e.message);
+      }
+    }
+
+    function paintTabs() {
+      document.querySelectorAll(".tab-btn").forEach((b) => {
+        const active = b.dataset.tab === tab;
+        b.classList.toggle("bg-(--primary)", active);
+        b.classList.toggle("text-white", active);
+        b.classList.toggle("border", !active);
+        b.classList.toggle("border-(--line-divider)", !active);
+      });
+    }
+
+    async function enterPanel() {
+      $("setup").classList.add("hidden");
+      $("panel").classList.remove("hidden");
+      paintTabs();
+      $("list").innerHTML = '<div class="text-sm text-neutral-500 py-6 text-center">加载中…</div>';
+      try {
+        await listFiles();
+      } catch (e) {
+        $("list").innerHTML =
+          '<div class="text-sm text-red-500 py-6 text-center">读取失败：' + e.message + "</div>";
+      }
+    }
+
+    $("saveToken").onclick = async () => {
+      const v = $("tokenInput").value.trim();
+      if (!v) return;
+      token = v;
+      localStorage.setItem("gh_pat", v);
+      $("setupMsg").textContent = "连接中…";
+      try {
+        await gh("");
+        $("setupMsg").textContent = "";
+        enterPanel();
+      } catch (e) {
+        $("setupMsg").textContent = "连不上：" + e.message;
+      }
+    };
+
+    document.querySelectorAll(".tab-btn").forEach((b) => {
+      b.onclick = () => {
+        tab = b.dataset.tab;
+        $("editor").classList.add("hidden");
+        paintTabs();
+        listFiles().catch((e) => alert(e.message));
+      };
+    });
+    $("newBtn").onclick = () => openEditor(null);
+    $("saveBtn").onclick = save;
+    $("cancelBtn").onclick = () => $("editor").classList.add("hidden");
+    $("logoutBtn").onclick = () => {
+      localStorage.removeItem("gh_pat");
+      token = "";
+      $("panel").classList.add("hidden");
+      $("setup").classList.remove("hidden");
+      $("tokenInput").value = "";
+    };
+
+    if (token) enterPanel();
+  </script>
+</MainGridLayout>
