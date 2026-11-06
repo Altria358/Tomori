@@ -1,0 +1,106 @@
+/* ============================================================
+ * 高松燈（Tomori Takamatsu）主题微调
+ * 配色基调：水色 / 浅青（hue 197），柔和、透明、像水槽里的光
+ * 该文件在 Layout.astro 中于 main.css 之后引入，仅做覆盖，不改结构
+ * ============================================================ */
+
+:root {
+	/* 更圆润的卡片 */
+	--radius-large: 1.25rem;
+
+	/* 主色：水色更亮一点，像灯照进水里的颜色 */
+	--primary: oklch(0.74 0.13 var(--hue));
+
+	/* 页面底色：带一点点青的米白，避免纯白刺眼 */
+	--page-bg: oklch(0.965 0.012 var(--hue));
+}
+
+:root.dark {
+	--page-bg: oklch(0.15 0.018 var(--hue));
+	--card-bg: oklch(0.21 0.02 var(--hue));
+	--primary: oklch(0.78 0.12 var(--hue));
+}
+
+/* 页面整体加一层极淡的水色光晕，像水槽底部的折射光 */
+body::before {
+	content: "";
+	position: fixed;
+	inset: 0;
+	z-index: -2;
+	pointer-events: none;
+	background:
+		radial-gradient(1200px 600px at 12% -10%, oklch(0.9 0.06 var(--hue) / 0.35), transparent 60%),
+		radial-gradient(900px 500px at 88% 8%, oklch(0.92 0.05 calc(var(--hue) + 20) / 0.28), transparent 60%);
+}
+
+:root.dark body::before {
+	background:
+		radial-gradient(1200px 600px at 12% -10%, oklch(0.45 0.08 var(--hue) / 0.35), transparent 65%),
+		radial-gradient(900px 500px at 88% 8%, oklch(0.4 0.07 calc(var(--hue) + 20) / 0.28), transparent 65%);
+}
+
+/* ── 首页横幅：主标题更像“手写标语”，带一点水的辉光 ── */
+#banner h1,
+.banner-title,
+#banner-title {
+	font-family:
+		"Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Yu Gothic UI", "Noto Sans SC",
+		system-ui, sans-serif;
+	letter-spacing: 0.03em;
+	text-shadow:
+		0 2px 24px oklch(0.85 0.08 var(--hue) / 0.45),
+		0 1px 2px rgb(0 0 0 / 0.25);
+}
+
+/* 横幅下的打字机副标题 */
+#banner .banner-subtitle,
+.banner-subtitle {
+	font-family:
+		"Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Yu Gothic UI", "Noto Sans SC",
+		system-ui, sans-serif;
+	letter-spacing: 0.08em;
+}
+
+/* ── 卡片：描边更轻、悬停时浮起一点点 ── */
+.card-base,
+[class*="card-base"] {
+	transition:
+		transform 220ms var(--ease-standard),
+		box-shadow 220ms var(--ease-standard),
+		border-color 220ms var(--ease-standard);
+}
+
+.card-base:hover,
+[class*="card-base"]:hover {
+	border-color: oklch(0.85 0.05 var(--hue) / 0.9);
+	box-shadow: 0 10px 30px oklch(0.6 0.08 var(--hue) / 0.18);
+}
+
+:root.dark .card-base:hover,
+:root.dark [class*="card-base"]:hover {
+	border-color: oklch(0.45 0.06 var(--hue) / 0.9);
+	box-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+}
+
+/* ── 链接：下划线更像水波 ── */
+.prose a,
+article a {
+	text-decoration-color: oklch(0.8 0.08 var(--hue) / 0.7);
+	text-underline-offset: 0.2em;
+}
+
+.prose a:hover,
+article a:hover {
+	text-decoration-color: oklch(0.7 0.12 var(--hue));
+}
+
+/* ── 选中文字：水色高亮 ── */
+::selection {
+	background: oklch(0.85 0.08 var(--hue) / 0.55);
+}
+
+/* ── 侧栏头像：一圈柔和的呼吸光 ── */
+#profile-avatar,
+.avatar {
+	box-shadow: 0 0 0 3px oklch(0.92 0.05 var(--hue) / 0.9), 0 8px 24px oklch(0.6 0.08 var(--hue) / 0.25);
+}
