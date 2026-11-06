@@ -3,7 +3,7 @@ import MainGridLayout from "@/layouts/MainGridLayout.astro";
 import "@/styles/pages/common.css";
 
 const title = "管理";
-const description = "在这里添加、修改、删除文章和项目";
+const description = "登录后添加、修改、删除文章和项目";
 ---
 
 <MainGridLayout title={title} description={description}>
@@ -12,47 +12,43 @@ const description = "在这里添加、修改、删除文章和项目";
       <div>
         <h2>内容管理</h2>
         <p class="text-sm text-neutral-500 dark:text-neutral-400">
-          在这里直接新增 / 修改 / 删除文章和项目，保存后 1~2 分钟自动发布。
+          输入密码就能新增 / 修改 / 删除文章和项目，保存后 1~2 分钟自动发布。
         </p>
       </div>
     </div>
 
-    <!-- 第一步：填 Token -->
+    <!-- 登录 -->
     <div id="setup" class="rounded-xl border border-(--line-divider) p-4">
-      <div class="font-bold mb-2">第一步：填入 GitHub Token（只需一次）</div>
-      <ol class="text-sm text-neutral-600 dark:text-neutral-300 list-decimal pl-5 space-y-1 mb-3">
-        <li>
-          打开
-          <a class="text-(--primary) underline" target="_blank" rel="noopener"
-            href="https://github.com/settings/personal-access-tokens/new"
-            >创建 Fine-grained token</a
-          >
-        </li>
-        <li>Repository access 选 <b>Only select repositories</b> → 勾选 <b>Tomori</b></li>
-        <li>Permissions → Repository permissions → <b>Contents</b> 设为 <b>Read and write</b></li>
-        <li>Generate token，复制 <code>github_pat_...</code> 粘贴到下面</li>
-      </ol>
+      <div class="font-bold mb-2">登录</div>
       <div class="flex flex-wrap gap-2">
         <input
-          id="tokenInput"
+          id="pwdInput"
           type="password"
-          placeholder="github_pat_..."
-          class="grow min-w-60 px-3 py-2 rounded-xl border border-(--line-divider) bg-transparent text-sm outline-none focus:border-(--primary)"
+          placeholder="管理密码"
+          class="grow min-w-50 px-3 py-2 rounded-xl border border-(--line-divider) bg-transparent text-sm outline-none focus:border-(--primary)"
         />
         <button
-          id="saveToken"
+          id="loginBtn"
           class="px-4 py-2 rounded-xl bg-(--primary) text-white text-sm font-medium hover:opacity-90"
         >
-          保存并连接
+          进入
         </button>
       </div>
       <p id="setupMsg" class="text-sm mt-2 text-neutral-500"></p>
-      <p class="text-xs text-neutral-400 mt-2">
-        Token 只保存在这台电脑的浏览器里（localStorage），不会上传到任何地方。
-      </p>
+      <details class="mt-3 text-xs text-neutral-400">
+        <summary class="cursor-pointer">高级：后台地址</summary>
+        <div class="flex flex-wrap gap-2 mt-2">
+          <input
+            id="backendInput"
+            class="grow min-w-50 px-2 py-1 rounded-lg border border-(--line-divider) bg-transparent outline-none focus:border-(--primary)"
+          />
+          <button id="backendSave" class="px-3 py-1 rounded-lg border border-(--line-divider)">保存</button>
+        </div>
+        <p class="mt-1">留空即用默认地址；本地调试填 http://127.0.0.1:8901</p>
+      </details>
     </div>
 
-    <!-- 第二步：管理 -->
+    <!-- 管理 -->
     <div id="panel" class="hidden mt-5">
       <div class="flex flex-wrap items-center gap-2 mb-4">
         <button data-tab="posts" class="tab-btn px-4 py-1.5 rounded-full text-sm font-medium">文章</button>
@@ -62,13 +58,12 @@ const description = "在这里添加、修改、删除文章和项目";
           + 新建
         </button>
         <button id="logoutBtn" class="px-3 py-1.5 rounded-full border border-(--line-divider) text-sm">
-          换 Token
+          退出
         </button>
       </div>
 
       <div id="list" class="space-y-2"></div>
 
-      <!-- 编辑器 -->
       <div id="editor" class="hidden mt-5 rounded-xl border border-(--line-divider) p-4">
         <div id="editorTitle" class="font-bold mb-3">新建</div>
         <div class="grid sm:grid-cols-2 gap-3 text-sm">
@@ -124,60 +119,50 @@ const description = "在这里添加、修改、删除文章和项目";
   </div>
 
   <script is:inline>
-    const OWNER = "Altria358";
-    const REPO = "Tomori";
-    const BRANCH = "main";
+    const DEFAULT_BACKEND = "https://tomori-admin.altria358.workers.dev";
     const DIRS = { posts: "src/content/posts", projects: "src/content/projects" };
-    const API = "https://api.github.com/repos/" + OWNER + "/" + REPO;
-
     const $ = (id) => document.getElementById(id);
-    let token = localStorage.getItem("gh_pat") || "";
+
+    function backend() {
+      const saved = (localStorage.getItem("admin_backend") || "").trim();
+      const base = saved || (location.hostname === "localhost" || location.hostname === "127.0.0.1" ? "http://127.0.0.1:8901" : DEFAULT_BACKEND);
+      return base.replace(/\/+$/, "");
+    }
+
+    let session = localStorage.getItem("admin_session") || "";
     let tab = "posts";
-    let editing = null; // { name, sha }
+    let editing = null;
 
-    const b64encode = (str) => {
-      const bytes = new TextEncoder().encode(str);
-      let bin = "";
-      const chunk = 0x8000;
-      for (let i = 0; i < bytes.length; i += chunk) {
-        bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
-      }
-      return btoa(bin);
-    };
-    const b64decode = (b64) => {
-      const bin = atob(b64.replace(/\s/g, ""));
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      return new TextDecoder().decode(bytes);
-    };
-
-    async function gh(path, opts = {}) {
-      const res = await fetch(API + path, {
-        ...opts,
-        headers: {
-          Accept: "application/vnd.github+json",
-          Authorization: "Bearer " + token,
-          "X-GitHub-Api-Version": "2022-11-28",
-          ...(opts.headers || {}),
-        },
+    async function api(path, opts) {
+      opts = opts || {};
+      const res = await fetch(backend() + path, {
+        method: opts.method || "GET",
+        headers: Object.assign(
+          { "content-type": "application/json" },
+          session ? { authorization: "Bearer " + session } : {},
+        ),
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
       });
-      if (!res.ok) {
-        let msg = res.status + " " + res.statusText;
-        try {
-          const j = await res.json();
-          if (j.message) msg += "：" + j.message;
-        } catch (e) {}
-        throw new Error(msg);
+      let data = null;
+      try {
+        data = await res.json();
+      } catch (e) {
+        data = null;
       }
-      return res.status === 204 ? null : res.json();
+      if (res.status === 401) {
+        logout();
+        throw new Error("登录已过期，请重新输入密码");
+      }
+      if (!res.ok) throw new Error((data && data.error) || res.status + " " + res.statusText);
+      return data;
     }
 
     async function listFiles() {
       const dir = DIRS[tab];
-      const items = await gh("/contents/" + dir + "?ref=" + BRANCH);
+      const data = await api("/api/files?dir=" + (tab === "posts" ? "posts" : "projects") + "&_=" + Date.now());
       const list = $("list");
       list.innerHTML = "";
-      const files = items.filter((f) => f.name.endsWith(".md"));
+      const files = (data && data.files) || [];
       if (!files.length) {
         list.innerHTML = '<div class="text-sm text-neutral-500 py-6 text-center">还没有内容，点「+ 新建」</div>';
         return;
@@ -186,13 +171,12 @@ const description = "在这里添加、修改、删除文章和项目";
         .sort((a, b) => a.name.localeCompare(b.name))
         .forEach((f) => {
           const row = document.createElement("div");
-          row.className =
-            "flex items-center gap-3 rounded-xl border border-(--line-divider) px-3 py-2 text-sm";
+          row.className = "flex items-center gap-3 rounded-xl border border-(--line-divider) px-3 py-2 text-sm";
           row.innerHTML =
             '<span class="grow truncate">' + f.name + "</span>" +
             '<button class="edit px-3 py-1 rounded-lg border border-(--line-divider)">编辑</button>' +
             '<button class="del px-3 py-1 rounded-lg border border-red-300 text-red-500">删除</button>';
-          row.querySelector(".edit").onclick = () => openEditor(f);
+          row.querySelector(".edit").onclick = () => openEditor(f).catch((e) => alert(e.message));
           row.querySelector(".del").onclick = () => removeFile(f);
           list.appendChild(row);
         });
@@ -210,9 +194,9 @@ const description = "在这里添加、修改、删除文章和项目";
     }
 
     async function openEditor(file) {
-      editing = file ? { name: file.name, sha: file.sha } : null;
+      editing = file ? { name: file.name, path: file.path } : null;
       $("editor").classList.remove("hidden");
-      $( "editorTitle").textContent = file ? "编辑：" + file.name : "新建" + (tab === "posts" ? "文章" : "项目");
+      $("editorTitle").textContent = file ? "编辑：" + file.name : "新建" + (tab === "posts" ? "文章" : "项目");
       $("editorMsg").textContent = "";
       $("catWrap").classList.toggle("hidden", tab !== "posts");
       $("statusWrap").classList.toggle("hidden", tab !== "projects");
@@ -220,9 +204,11 @@ const description = "在这里添加、修改、删除文章和项目";
       $("fName").disabled = !!file;
 
       if (file) {
-        const data = await gh("/contents/" + file.path + "?ref=" + BRANCH);
-        const text = b64decode(data.content);
-        const { data: fm, body } = parseFrontmatter(text);
+        $("editorMsg").textContent = "读取中…";
+        const data = await api("/api/file?path=" + encodeURIComponent(file.path) + "&_=" + Date.now());
+        $("editorMsg").textContent = "";
+        const parsed = parseFrontmatter(data.content || "");
+        const fm = parsed.data;
         $("fName").value = file.name.replace(/\.md$/, "");
         $("fTitle").value = (fm.title || "").replace(/^["']|["']$/g, "");
         $("fDate").value = (fm.published || "").slice(0, 10);
@@ -230,8 +216,8 @@ const description = "在这里添加、修改、删除文章和项目";
         $("fTags").value = (fm.tags || "").replace(/[\[\]]/g, "");
         $("fCat").value = (fm.category || "").replace(/^["']|["']$/g, "");
         $("fStatus").value = (fm.status || "published").replace(/^["']|["']$/g, "");
-        $("fBody").value = body;
         $("fLink").value = "";
+        $("fBody").value = parsed.body;
       } else {
         $("fName").value = "";
         $("fTitle").value = "";
@@ -281,17 +267,17 @@ const description = "在这里添加、修改、删除文章和项目";
       if (!name) return alert("请填写文件名");
       if (!$("fTitle").value.trim()) return alert("请填写标题");
       if (!/^[a-zA-Z0-9._-]+$/.test(name)) return alert("文件名只能用英文、数字、点、下划线、短横线");
-      const dir = DIRS[tab];
-      const path = dir + "/" + name + ".md";
+      const path = editing ? editing.path : DIRS[tab] + "/" + name + ".md";
       $("editorMsg").textContent = "保存中…";
       try {
-        const body = {
-          message: (editing ? "更新 " : "新增 ") + (tab === "posts" ? "文章：" : "项目：") + name,
-          content: b64encode(buildMarkdown()),
-          branch: BRANCH,
-        };
-        if (editing && editing.sha) body.sha = editing.sha;
-        await gh("/contents/" + path, { method: "PUT", body: JSON.stringify(body) });
+        await api("/api/file", {
+          method: "PUT",
+          body: {
+            path: path,
+            content: buildMarkdown(),
+            message: (editing ? "更新 " : "新增 ") + (tab === "posts" ? "文章：" : "项目：") + name,
+          },
+        });
         $("editorMsg").textContent = "已保存，1~2 分钟后自动发布 ✓";
         editing = null;
         $("editor").classList.add("hidden");
@@ -302,12 +288,9 @@ const description = "在这里添加、修改、删除文章和项目";
     }
 
     async function removeFile(file) {
-      if (!confirm("确定删除 " + file.name + " ？（会同时删除线上的这一篇）")) return;
+      if (!confirm("确定删除 " + file.name + " ？")) return;
       try {
-        await gh("/contents/" + file.path, {
-          method: "DELETE",
-          body: JSON.stringify({ message: "删除 " + file.name, sha: file.sha, branch: BRANCH }),
-        });
+        await api("/api/file", { method: "DELETE", body: { path: file.path, sha: file.sha } });
         await listFiles();
       } catch (e) {
         alert("删除失败：" + e.message);
@@ -332,24 +315,40 @@ const description = "在这里添加、修改、删除文章和项目";
       try {
         await listFiles();
       } catch (e) {
-        $("list").innerHTML =
-          '<div class="text-sm text-red-500 py-6 text-center">读取失败：' + e.message + "</div>";
+        $("list").innerHTML = '<div class="text-sm text-red-500 py-6 text-center">读取失败：' + e.message + "</div>";
       }
     }
 
-    $("saveToken").onclick = async () => {
-      const v = $("tokenInput").value.trim();
-      if (!v) return;
-      token = v;
-      localStorage.setItem("gh_pat", v);
-      $("setupMsg").textContent = "连接中…";
+    function logout() {
+      session = "";
+      localStorage.removeItem("admin_session");
+      $("panel").classList.add("hidden");
+      $("editor").classList.add("hidden");
+      $("setup").classList.remove("hidden");
+    }
+
+    $("loginBtn").onclick = async () => {
+      const pwd = $("pwdInput").value;
+      if (!pwd) return;
+      $("setupMsg").textContent = "登录中…";
       try {
-        await gh("");
+        const data = await api("/api/login", { method: "POST", body: { password: pwd } });
+        session = data.token;
+        localStorage.setItem("admin_session", session);
         $("setupMsg").textContent = "";
-        enterPanel();
+        $("pwdInput").value = "";
+        await enterPanel();
       } catch (e) {
-        $("setupMsg").textContent = "连不上：" + e.message;
+        $("setupMsg").textContent = "登录失败：" + e.message;
       }
+    };
+
+    $("backendInput").value = localStorage.getItem("admin_backend") || "";
+    $("backendSave").onclick = () => {
+      const v = $("backendInput").value.trim();
+      if (v) localStorage.setItem("admin_backend", v);
+      else localStorage.removeItem("admin_backend");
+      $("setupMsg").textContent = "后台地址已保存：" + backend();
     };
 
     document.querySelectorAll(".tab-btn").forEach((b) => {
@@ -360,17 +359,21 @@ const description = "在这里添加、修改、删除文章和项目";
         listFiles().catch((e) => alert(e.message));
       };
     });
-    $("newBtn").onclick = () => openEditor(null);
+    $("newBtn").onclick = () => openEditor(null).catch((e) => alert(e.message));
     $("saveBtn").onclick = save;
     $("cancelBtn").onclick = () => $("editor").classList.add("hidden");
-    $("logoutBtn").onclick = () => {
-      localStorage.removeItem("gh_pat");
-      token = "";
-      $("panel").classList.add("hidden");
-      $("setup").classList.remove("hidden");
-      $("tokenInput").value = "";
-    };
+    $("logoutBtn").onclick = logout;
+    $("pwdInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") $("loginBtn").click();
+    });
 
-    if (token) enterPanel();
+    if (session) {
+      api("/api/me")
+        .then((d) => {
+          if (d && d.ok) enterPanel();
+          else logout();
+        })
+        .catch(() => logout());
+    }
   </script>
 </MainGridLayout>

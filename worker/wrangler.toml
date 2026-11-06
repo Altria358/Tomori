@@ -1,0 +1,8 @@
+name = "tomori-admin"
+main = "src/index.ts"
+compatibility_date = "2025-10-01"
+
+[vars]
+REPO = "Altria358/Tomori"
+BRANCH = "main"
+ALLOWED_ORIGINS = "https://altria358.github.io,http://localhost:4321,http://127.0.0.1:4321"
