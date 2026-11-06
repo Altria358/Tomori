@@ -9,10 +9,10 @@ export const profileConfig: ProfileConfig = {
 	avatar: "assets/images/avatar-tomori.png",
 
 	// 名字
-	name: "高松燈",
+	name: "高松灯",
 
 	// 个人签名
-	bio: "迷子でもいい、迷子でも進め。",
+	bio: "就算迷路，也要继续向前走。",
 
 	// 链接配置
 	// 已经预装的图标集：fa7-brands，fa7-regular，fa7-solid，material-symbols，simple-icons

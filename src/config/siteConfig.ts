@@ -42,27 +42,27 @@ const pages = resolvePageToggles({
 
 export const siteConfig: SiteConfig = {
 	// 站点标题
-	title: "高松燈",
+	title: "高松灯",
 
 	// 站点副标题
-	subtitle: "迷子でもいい、迷子でも進め",
+	subtitle: "就算迷路，也要继续向前走",
 
 	// 站点 URL
 	site_url: "http://localhost:4321",
 
 	// 站点描述
 	description:
-		"高松燈（たかまつ ともり）主題のブログ。迷子でもいい、迷子でも進め——把说不出口的心情，写成歌。",
+		"高松灯的主题博客。就算迷路，也要继续向前走——把说不出口的心情，写成歌。",
 
 	// 站点关键词
 	keywords: [
-		"高松燈",
+		"高松灯",
 		"高松灯",
 		"MyGO",
 		"BanG Dream",
-		"迷子",
-		"アニメ",
-		"ブログ",
+		"迷路",
+		"动画",
+		"博客",
 	],
 
 	// 主题色
@@ -117,7 +117,7 @@ export const siteConfig: SiteConfig = {
 			alt: "🍀",
 		},
 		// 导航栏标题
-		title: "高松燈",
+		title: "高松灯",
 		// 全宽导航栏，导航栏是否占满屏幕宽度
 		widthFull: false,
 		// 导航菜单对齐方式，left：左对齐，center：居中

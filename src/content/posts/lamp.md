@@ -1,5 +1,5 @@
 ---
-title: 灯をともす
+title: 点亮一盏灯
 published: 2026-11-06
 description: 关于「灯」这件事——不是照亮别人，只是先让自己看得见脚下。
 tags: [随笔]

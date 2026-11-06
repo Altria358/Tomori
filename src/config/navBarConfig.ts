@@ -22,6 +22,9 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 		children: [LinkPresets.Archive, LinkPresets.Categories, LinkPresets.Tags],
 	});
 
+	// 项目
+	links.push(LinkPresets.Projects);
+
 	// 关于
 	links.push(LinkPresets.About);
 
@@ -61,6 +64,11 @@ export const LinkPresets: Record<string, NavBarLink> = {
 		name: "关于我",
 		url: "/about/",
 		icon: "material-symbols:person",
+	},
+	Projects: {
+		name: "项目",
+		url: "/projects/",
+		icon: "material-symbols:work-rounded",
 	},
 };
 
