@@ -94,7 +94,12 @@ export function url(path: string): string {
 	}
 
 	// 只有本地相对路径才添加BASE_URL
-	return joinUrl("", import.meta.env.BASE_URL, path);
+	// 注意：Astro 构建产物（如 img.src）在设置 base 后本身已带前缀，这里做一次幂等保护，避免出现 /Tomori/Tomori/...
+	const base = import.meta.env.BASE_URL || "/";
+	if (base !== "/" && path.startsWith(base)) {
+		return path;
+	}
+	return joinUrl("", base, path);
 }
 
 // 内容详情页路径模式：文章(/posts/、/post/) 与 项目详情(/projects/<slug>/)

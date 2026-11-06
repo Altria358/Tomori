@@ -19,10 +19,13 @@ export async function GET(context: APIContext): Promise<Response> {
 		link: entry.link,
 		...(includeContent ? { content: entry.content } : {}),
 	}));
+	const siteBase = context.site ?? new URL("http://localhost:4321");
+	// 部署在子路径（如 /Tomori/）时，feed 链接也要带上 base
+	const feedRoot = new URL(import.meta.env.BASE_URL || "/", siteBase);
 	return rss({
 		title: siteConfig.title,
 		description: siteConfig.subtitle || "No description",
-		site: context.site ?? "http://localhost:4321",
+		site: feedRoot,
 		customData: `<templateTheme>Firefly</templateTheme>
 		<templateThemeVersion>${pkg.version}</templateThemeVersion>
 		<lastBuildDate>${formatDateI18nWithTime(new Date())}</lastBuildDate>`,

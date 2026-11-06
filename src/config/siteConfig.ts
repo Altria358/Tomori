@@ -47,8 +47,9 @@ export const siteConfig: SiteConfig = {
 	// 站点副标题
 	subtitle: "就算迷路，也要继续向前走",
 
-	// 站点 URL
-	site_url: "http://localhost:4321",
+	// 站点 URL（origin，不含子路径）
+	// 构建时用 astro.config.mjs 里的 site（来自 SITE_URL 环境变量），本地开发回落到 localhost
+	site_url: (import.meta.env?.SITE as string) || "http://localhost:4321",
 
 	// 站点描述
 	description:
@@ -56,7 +57,6 @@ export const siteConfig: SiteConfig = {
 
 	// 站点关键词
 	keywords: [
-		"高松灯",
 		"高松灯",
 		"MyGO",
 		"BanG Dream",
@@ -114,7 +114,7 @@ export const siteConfig: SiteConfig = {
 			type: "image",
 			value: "assets/images/logo/tomori-light.png",
 			valueDark: "assets/images/logo/tomori-dark.png",
-			alt: "🍀",
+			alt: "高松灯",
 		},
 		// 导航栏标题
 		title: "高松灯",
